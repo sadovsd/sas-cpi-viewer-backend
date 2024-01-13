@@ -1,0 +1,18 @@
+%macro get_available_series(item_code);
+    %put "Macro get_available_series started with item_code: &item_code.";
+
+    proc import datafile="/home/u63731510/cpi_viewer/data/cu.series"
+        out=series_docs (compress=char) replace
+        dbms=tab;
+        getnames=yes;
+    run;
+
+    %put "Import completed.";
+
+    data available_series;
+        set series_docs;
+        where item_code = &item_code AND area_code = 0 AND periodicity_code='R' AND seasonal='U';
+    run;
+
+    %put "Data step completed.";
+%mend;

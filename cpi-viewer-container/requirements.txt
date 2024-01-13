@@ -1,0 +1,6 @@
+python-dotenv
+requests
+Flask
+flask_cors
+saspy
+gunicorn

@@ -1,0 +1,82 @@
+%macro makeGraphReadyData(start_year, end_year, calculation_type, source_file, series_id);
+	
+	/* slow way - read the source_file */
+	data source_file_data;
+		infile "/home/u63731510/cpi_viewer/data/&source_file"
+			firstobs=2
+			expandtabs
+			pad;
+		input @1 series_id $17. @19 year @29 period $ @36 value; 
+	run;
+
+
+	/* fast way - use permanent sas data sets */
+	/* assign a libref for this sas session to the location of the permanent .sas7bdat source_files */
+	libname mylib '/home/u63731510/cpi_viewer/sas7bdat_data';
+	
+	/* Extract the part of the source_file string after the last '.' */
+	%let file_name = %scan(&source_file, -1, '.');
+	
+	/* Convert file_name to lowercase */
+	%let file_name_lower = %lowcase(&file_name);
+
+	proc sql;
+		/* create a data set that contains the CPI data corresponding to series_id in the year interval */
+		CREATE TABLE series_data as
+		SELECT * FROM mylib.&file_name_lower
+		/* SELECT * FROM source_file_data */
+ 		WHERE series_id = "&series_id" /* when it was unquoted, sql tried finding a column name equal to &series_id */
+		AND year >= &start_year
+		AND year <= &end_year;
+	quit;
+	
+	/* adjust the cpi data set based on the calculation method user selected*/
+	%macro create_data_sets(calc_type, series_data2);
+		/* make yearly data */
+		%if %upcase(&calc_type) = YEARLY %then %do;
+			data calc_type_data;
+				set &series_data2;
+				where period ~= "M13";
+				/* since some series don't have a M13 period signifying the yearly cpi, we have to average all 12 months */
+				sum_value + value;
+				if period = "M12" then do;
+					value = sum_value / 12;
+					output;
+					sum_value = 0;
+				end;
+				keep year value;
+			run;
+		%end;
+		/* make monthly data */
+		%else %if %upcase(&calc_type) = MONTHLY %then %do;
+			data calc_type_data;
+				set &series_data2;
+				where period ~= "M13";  
+				year_month = catx("_", year, period);
+				keep year_month value;
+			run;
+		%end;
+		/* make quarterly data */
+		%else %if %upcase(&calc_type) = QUARTERLY %then %do;
+			data calc_type_data;
+				set &series_data2;
+				where period ~= "M13";
+				sum_value + value;
+				if period = "M03" or period = "M06" or period = "M09" or period = "M12" then do;
+					value = sum_value / 3;
+					if period = "M03" then year_quarter = catx("_", year, "Q1");
+					if period = "M06" then year_quarter = catx("_", year, "Q2");
+					if period = "M09" then year_quarter = catx("_", year, "Q3");
+					if period = "M12" then year_quarter = catx("_", year, "Q4");
+					output;
+					sum_value = 0;
+				end;
+				keep year_quarter value;
+			run;
+		%end;
+	%mend;
+
+	/* this creates a graph ready dataset calc_type_data */
+	%create_data_sets(&calculation_type, series_data);
+
+%mend;
