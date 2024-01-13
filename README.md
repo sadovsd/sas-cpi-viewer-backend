@@ -22,8 +22,8 @@ OMRPW=password
 - Once you have the docker image built, upload it to your docker public registery with this command: docker push <docker_account_name>/<image_name>:1.1
 - In Azure, create a new "Container App".
 - For ingress options, set it to "enable ingress", ingress type = http, target port = 8000
-- Set environmental variable NUM_WORKERS = 4. This value can be set higher, but this is a safe number. As a rule of thumb, the number of processes that can be spawned effeciently is 2*number of cores + 2.
+- Set environmental variable NUM_WORKERS = 4. This value can be set higher, but this is a safe number. As a rule of thumb, the number of processes that can be spawned efficiently is 2*number of cores + 2.
 - Set SAS_REQ_TIMEOUT = 5.
 -  Set the 'Scale' setting to be between 1 and X instances so the container app dosen't shut down, if it is 0 it will power off in some time and will need a warmup start again.
-- Bump up CPU to 1.0 and memory to 2.0 as the default is 0.5 and 1.0 for the Contaier app
+- Bump up CPU to 1.0 and memory to 2.0 as the default is 0.5 and 1.0 for the container app
 
